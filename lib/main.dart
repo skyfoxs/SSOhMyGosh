@@ -1,4 +1,4 @@
-import 'package:auth/user_password_screen.dart';
+import 'package:auth/simple_signin_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const UserPasswordScreen(),
+      home: const SimpleSignInScreen(),
     );
   }
 }
