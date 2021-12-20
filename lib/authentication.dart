@@ -1,10 +1,12 @@
 import 'dart:convert';
 
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:jwt_decode/jwt_decode.dart';
+import 'package:openid_client/openid_client_io.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Authentication {
-  Client client;
+  http.Client client;
 
   Authentication({required this.client});
 
@@ -15,7 +17,7 @@ class Authentication {
     try {
       Uri url = Uri.parse(
           'https://auth.odd.limited/auth/realms/Odds/protocol/openid-connect/token');
-      Response response = await client.post(
+      http.Response response = await client.post(
         url,
         body: {
           'client_id': 'api',
@@ -36,9 +38,40 @@ class Authentication {
       Map<String, dynamic> payload =
           Jwt.parseJwt(decoded["access_token"] as String);
       return payload;
-    } on ClientException catch (e) {
+    } on http.ClientException catch (e) {
       throw Exception("Network error: $e");
     }
+  }
+
+  Future<Map<String, dynamic>> ssoSignIn() async {
+    Uri url = Uri.parse('https://auth.odd.limited/auth/realms/Odds');
+    var issuer = await Issuer.discover(url);
+    var client = Client(
+      issuer,
+      'flutter',
+      clientSecret: '2e9ab7fd-423d-4944-8496-c2997a06ba14',
+    );
+
+    urlLauncher(String url) async {
+      if (await canLaunch(url)) {
+        await launch(url, forceWebView: true);
+      } else {
+        throw 'Could not launch $url';
+      }
+    }
+
+    var authenticator = Authenticator(
+      client,
+      scopes: ['email', 'profile'],
+      port: 4200,
+      urlLancher: urlLauncher,
+    );
+
+    Credential credential = await authenticator.authorize();
+    closeWebView();
+
+    TokenResponse response = await credential.getTokenResponse();
+    return Jwt.parseJwt(response.accessToken!);
   }
 }
 
